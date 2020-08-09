@@ -7,8 +7,8 @@ from passlib.handlers.bcrypt import bcrypt
 import simplejson
 from sqlalchemy.exc import IntegrityError
 
-from messaging_system import db
-from models.users import User
+from messaging.messaging_system import db
+from messaging.models.users import User
 
 
 class LoginAPI(MethodView):

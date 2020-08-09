@@ -1,7 +1,7 @@
 from datetime import date
-from messaging_system import db
-from models import DatabaseModel
-from models.users import User
+from messaging.messaging_system import db
+from messaging.models import DatabaseModel
+from messaging.models.users import User
 
 
 class Message(DatabaseModel):

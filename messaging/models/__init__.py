@@ -1,7 +1,7 @@
 from datetime import date
 from sqlalchemy import inspect
 
-from messaging_system import db
+from messaging.messaging_system import db
 
 
 class DatabaseModel(db.Model):

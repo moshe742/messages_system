@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import logging
 
 from flask import Flask
 
@@ -8,9 +9,13 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 
+print('start of messaging_system')
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 app.config.update({
     'SQLALCHEMY_DATABASE_URI': f"sqlite:///{BASE_DIR}/db.sqlite",
@@ -27,16 +32,21 @@ login_manager = LoginManager()
 
 @login_manager.user_loader
 def load_user(user_id):
-    from models.users import User
+    from messaging.models.users import User
     return User.query.get(user_id)
 
 
+@app.route('/', methods=['GET'])
+def hello():
+    return 'hello'
+
+
 def main():
-    from accounts import (
+    from messaging.accounts import (
         LoginAPI,
         RegisterAPI
     )
-    from messages import (
+    from messaging.messages import (
         MessageAPI,
         ListMessagesAPI,
     )
@@ -48,11 +58,11 @@ def main():
 
     app.add_url_rule('/login/',
                      view_func=LoginAPI.as_view('login'))
-    app.add_url_rule('/register/',
+    app.add_url_rule('/register',
                      view_func=RegisterAPI.as_view('register'))
+
     login_manager.init_app(app)
-    app.run(host='0.0.0.0', threaded=True)
 
 
-if __name__ == '__main__':
+if __name__ == 'messaging.messaging_system':
     main()

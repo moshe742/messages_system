@@ -1,7 +1,7 @@
 from flask_login import UserMixin
 
-from messaging_system import db
-from models import DatabaseModel
+from messaging.messaging_system import db
+from messaging.models import DatabaseModel
 
 
 class User(DatabaseModel, UserMixin):
