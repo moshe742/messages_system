@@ -1,4 +1,5 @@
 from datetime import date
+import logging
 
 from flask import jsonify
 from flask import request
@@ -7,27 +8,41 @@ from flask.views import MethodView
 from flask_login import login_required, current_user
 from sqlalchemy.orm.exc import NoResultFound
 
-from models.messages import Message
-from models.users import User
-from messaging_system import db
+from messaging.models.messages import Message
+from messaging.models.users import User
+from messaging.messaging_system import db
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class MessageAPI(MethodView):
     @login_required
     def get(self, message_id):
         message = Message.query.get(message_id)
+        users = User.query.all()
+        users = {user.id: user.username for user in users}
         message.is_read = True
         db.session.add(message)
         db.session.commit()
 
+        message = message.to_dict()
+        message['sender'] = users[message['sender']]
+        message['receiver'] = users[message['receiver']]
+
         return jsonify({
-            'message': message.to_dict()
+            'message': message
         }), 200
 
     @login_required
     def delete(self, message_id):
         try:
             message = Message.query.get(message_id)
+            if not message:
+                return jsonify({
+                    'error': "this message doesn't exist"
+                })
             if message.sender == current_user.id or message.receiver == current_user.id:
                 db.session.delete(message)
                 db.session.commit()
@@ -38,6 +53,10 @@ class MessageAPI(MethodView):
             return jsonify({
                 'delete': 'ok'
             }), 200
+        except ValueError:
+            return jsonify({
+                'error': ''
+            })
         except Exception as ex:
             print(ex)
             return jsonify({
@@ -48,6 +67,7 @@ class MessageAPI(MethodView):
 class ListMessagesAPI(MethodView):
     @login_required
     def get(self):
+        logger.info('logging in list of messages')
         message_types = {
             'unread': Message.query.filter_by(receiver=current_user.id).filter_by(is_read=False),
             'all': Message.query.filter_by(receiver=current_user.id),
@@ -58,9 +78,10 @@ class ListMessagesAPI(MethodView):
         users_id_to_username = {user.id: user.username for user in users}
         res = []
         for message in messages:
-            message.sender = users_id_to_username[message.sender]
-            message.receiver = users_id_to_username[message.receiver]
-            res.append(message.to_dict())
+            message = message.to_dict()
+            message['sender'] = users_id_to_username[message['sender']]
+            message['receiver'] = users_id_to_username[message['receiver']]
+            res.append(message)
 
         return jsonify(res), 200
 
@@ -94,16 +115,15 @@ class ListMessagesAPI(MethodView):
         try:
             db.session.commit()
         except Exception as ex:
-            print(ex)
+            logger.error(ex)
             return jsonify({
                 'error': str(ex)
             })
 
-        return jsonify({
-            'message_id': message.id,
-            'sender': message.sender,
-            'receiver': message.receiver,
-            'subject': message.subject,
-            'message': message.message,
-            'creation_date': message.creation_date,
-        })
+        users = User.query.all()
+        users = {user.id: user.username for user in users}
+        message = message.to_dict()
+        message['sender'] = users[message['sender']]
+        message['receiver'] = users[message['receiver']]
+
+        return jsonify(message)
